@@ -36,7 +36,7 @@ var (
 	moveSpeed int32   = 3
 	pDeltaX   float64 = 0
 	pDeltaY   float64 = 0
-	pAngle    float64 = 0
+	pAngle    float64 = DR * 5
 )
 
 func drawWorld() {
@@ -298,6 +298,7 @@ func castRays() {
 }
 
 func main() {
+	rl.SetConfigFlags(rl.FlagWindowResizable | rl.FlagVsyncHint)
 	rl.InitWindow(1024, 512, "raycaster")
 	defer rl.CloseWindow()
 
