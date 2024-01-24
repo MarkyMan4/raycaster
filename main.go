@@ -67,14 +67,6 @@ func updatePlayer() {
 		rl.Green,
 	)
 
-	if rl.IsKeyDown(rl.KeyW) {
-		px += pDeltaX
-		py += pDeltaY
-	}
-	if rl.IsKeyDown(rl.KeyS) {
-		px -= pDeltaX
-		py -= pDeltaY
-	}
 	if rl.IsKeyDown(rl.KeyA) {
 		pAngle -= 0.03
 
@@ -96,6 +88,47 @@ func updatePlayer() {
 
 		pDeltaX = math.Cos(pAngle) * float64(moveSpeed)
 		pDeltaY = math.Sin(pAngle) * float64(moveSpeed)
+	}
+
+	// collision detection
+	// check 20 units in front of player
+	xOffset := 0
+	yOffset := 0
+
+	if pDeltaX < 0 {
+		xOffset = -20
+	} else {
+		xOffset = 20
+	}
+
+	if pDeltaY < 0 {
+		yOffset = -20
+	} else {
+		yOffset = 20
+	}
+
+	gridPosX := int(px / blockSize)
+	gridPosY := int(py / blockSize)
+	gridPosXPlusOffset := int((px + float64(xOffset)) / 64.0)
+	gridPosXSubOffset := int((px - float64(xOffset)) / 64.0)
+	gridPosYPlusOffset := int((py + float64(yOffset)) / 64.0)
+	gridPosYSubOffset := int((py - float64(yOffset)) / 64.0)
+
+	if rl.IsKeyDown(rl.KeyW) {
+		if world[gridPosY*worldWidth+gridPosXPlusOffset] == 0 {
+			px += pDeltaX
+		}
+		if world[gridPosYPlusOffset*worldWidth+gridPosX] == 0 {
+			py += pDeltaY
+		}
+	}
+	if rl.IsKeyDown(rl.KeyS) {
+		if world[gridPosY*worldWidth+gridPosXSubOffset] == 0 {
+			px -= pDeltaX
+		}
+		if world[gridPosYSubOffset*worldWidth+gridPosX] == 0 {
+			py -= pDeltaY
+		}
 	}
 }
 
