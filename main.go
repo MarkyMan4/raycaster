@@ -425,13 +425,13 @@ func castRays() {
 		dist1 := distance(px, py, ray1X, ray1Y)
 		dist2 := distance(px, py, ray2X, ray2Y)
 		dist := dist1
-		color := rl.SkyBlue
+		// color := rl.SkyBlue
 
 		if dist2 < dist1 {
 			rayX = ray2X
 			rayY = ray2Y
 			dist = dist2
-			color = rl.Blue
+			// color = rl.Blue
 		}
 
 		rl.DrawLine(
@@ -478,14 +478,20 @@ func castRays() {
 		// )
 
 		// textured walls
+		// var ty float64 = 0
+		// var tyStep float64 = 32.0 / wallHeight
+
 		for y := 0; y < int(wallHeight); y++ {
+			// c := uint8(textures[int(ty)*32])
+
 			rl.DrawRectangle(
 				int32(i*8+530),
-				wallOffset,
+				wallOffset+int32(y),
 				2,
 				1,
-				color,
+				rl.NewColor(255, 255, 255, 1),
 			)
+
 		}
 	}
 }
