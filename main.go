@@ -426,12 +426,14 @@ func castRays() {
 		dist2 := distance(px, py, ray2X, ray2Y)
 		dist := dist1
 		// color := rl.SkyBlue
+		shade := 1.0
 
 		if dist2 < dist1 {
 			rayX = ray2X
 			rayY = ray2Y
 			dist = dist2
 			// color = rl.Blue
+			shade = 0.5
 		}
 
 		rl.DrawLine(
@@ -465,8 +467,18 @@ func castRays() {
 
 		dist = dist * math.Cos(cameraAngle)
 
-		wallHeight := math.Min((blockSize*maxWallHeight)/dist, maxWallHeight)
+		// draw walls
+		wallHeight := (blockSize * maxWallHeight) / dist
+		var tyStep float64 = 32.0 / wallHeight
+		var tyOff float64 = 0
+
+		if wallHeight > maxWallHeight {
+			tyOff = (wallHeight - maxWallHeight) / 2.0
+			wallHeight = maxWallHeight
+		}
+
 		wallOffset := int32((maxWallHeight / 2) - (wallHeight / 2))
+		var ty float64 = tyOff * tyStep
 
 		// to just draw walls as solid colors, use this
 		// rl.DrawRectangle(
@@ -478,20 +490,19 @@ func castRays() {
 		// )
 
 		// textured walls
-		// var ty float64 = 0
-		// var tyStep float64 = 32.0 / wallHeight
 
 		for y := 0; y < int(wallHeight); y++ {
-			// c := uint8(textures[int(ty)*32])
+			c := uint8(float64(textures[int(ty)*32]) * shade * 255)
 
 			rl.DrawRectangle(
 				int32(i*8+530),
 				wallOffset+int32(y),
 				2,
 				1,
-				rl.NewColor(255, 255, 255, 1),
+				rl.NewColor(c, c, c, 255),
 			)
 
+			ty += tyStep
 		}
 	}
 }
