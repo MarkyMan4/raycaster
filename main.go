@@ -17,15 +17,15 @@ const (
 	FOV           = 60
 )
 
-var world = []int{
+var worldWalls = []int{
 	1, 1, 1, 1, 1, 1, 1, 1,
-	1, 0, 0, 0, 0, 0, 0, 0,
-	1, 0, 0, 0, 0, 1, 1, 1,
 	1, 0, 0, 0, 0, 0, 0, 1,
+	1, 0, 0, 0, 0, 2, 2, 1,
 	1, 0, 0, 0, 0, 0, 0, 1,
-	1, 0, 0, 0, 1, 0, 1, 1,
+	4, 0, 0, 0, 0, 0, 0, 1,
+	1, 0, 0, 0, 2, 0, 2, 1,
 	1, 0, 0, 0, 0, 0, 0, 1,
-	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 3, 3, 1, 1, 1,
 }
 
 // all 32x32 textures
@@ -191,7 +191,7 @@ func drawWorld() {
 	for y := 0; y < worldHeight; y++ {
 		for x := 0; x < worldWidth; x++ {
 			tileColor := rl.Black
-			if world[y*worldWidth+x] == 1 {
+			if worldWalls[y*worldWidth+x] > 0 {
 				tileColor = rl.White
 			}
 
@@ -263,27 +263,28 @@ func updatePlayer() {
 	gridPosYSubOffset := int((py - float64(yOffset)) / 64.0)
 
 	if rl.IsKeyDown(rl.KeyW) {
-		if world[gridPosY*worldWidth+gridPosXPlusOffset] == 0 {
+		if worldWalls[gridPosY*worldWidth+gridPosXPlusOffset] == 0 {
 			px += pDeltaX
 		}
-		if world[gridPosYPlusOffset*worldWidth+gridPosX] == 0 {
+		if worldWalls[gridPosYPlusOffset*worldWidth+gridPosX] == 0 {
 			py += pDeltaY
 		}
 	}
 	if rl.IsKeyDown(rl.KeyS) {
-		if world[gridPosY*worldWidth+gridPosXSubOffset] == 0 {
+		if worldWalls[gridPosY*worldWidth+gridPosXSubOffset] == 0 {
 			px -= pDeltaX
 		}
-		if world[gridPosYSubOffset*worldWidth+gridPosX] == 0 {
+		if worldWalls[gridPosYSubOffset*worldWidth+gridPosX] == 0 {
 			py -= pDeltaY
 		}
 	}
 }
 
-func checkVerticalLines(angleOffset float64) (float64, float64) {
+func checkVerticalLines(angleOffset float64) (float64, float64, int) {
 	var mapX, mapY, mapPos, depthOfField int
 	var rayX, rayY, rayAngle, xOffset, yOffset float64
 	rayAngle = pAngle + angleOffset
+	texture := 0
 
 	if rayAngle < 0 {
 		rayAngle += 2 * math.Pi
@@ -327,8 +328,9 @@ func checkVerticalLines(angleOffset float64) (float64, float64) {
 		mapPos = mapY*worldWidth + mapX
 
 		// hit wall
-		if mapPos > 0 && mapPos < worldWidth*worldHeight && world[mapPos] == 1 {
+		if mapPos > 0 && mapPos < worldWidth*worldHeight && worldWalls[mapPos] > 0 {
 			depthOfField = 8
+			texture = worldWalls[mapPos] - 1
 		} else {
 			rayX += xOffset
 			rayY += yOffset
@@ -336,13 +338,14 @@ func checkVerticalLines(angleOffset float64) (float64, float64) {
 		}
 	}
 
-	return rayX, rayY
+	return rayX, rayY, texture
 }
 
-func checkHorizontalLines(angleOffset float64) (float64, float64) {
+func checkHorizontalLines(angleOffset float64) (float64, float64, int) {
 	var mapX, mapY, mapPos, depthOfField int
 	var rayX, rayY, rayAngle, xOffset, yOffset float64
 	rayAngle = pAngle + angleOffset
+	texture := 0
 
 	if rayAngle < 0 {
 		rayAngle += 2 * math.Pi
@@ -386,8 +389,9 @@ func checkHorizontalLines(angleOffset float64) (float64, float64) {
 		mapPos = mapY*worldWidth + mapX
 
 		// hit wall
-		if mapPos > 0 && mapPos < worldWidth*worldHeight && world[mapPos] == 1 {
+		if mapPos > 0 && mapPos < worldWidth*worldHeight && worldWalls[mapPos] > 0 {
 			depthOfField = 8
+			texture = worldWalls[mapPos] - 1
 		} else {
 			rayX += xOffset
 			rayY += yOffset
@@ -395,7 +399,7 @@ func checkHorizontalLines(angleOffset float64) (float64, float64) {
 		}
 	}
 
-	return rayX, rayY
+	return rayX, rayY, texture
 }
 
 func distance(x1, y1, x2, y2 float64) float64 {
@@ -416,24 +420,26 @@ func minFloat(val1, val2 float64) float64 {
 func castRays() {
 	for i := 0.0; i < FOV; i += 0.25 {
 		degrees := (i - (FOV / 2)) * DR
-		ray1X, ray1Y := checkVerticalLines(degrees)
-		ray2X, ray2Y := checkHorizontalLines(degrees)
+		vRayX, vRayY, vTexture := checkVerticalLines(degrees)
+		hRayX, hRayY, hTexture := checkHorizontalLines(degrees)
 
 		// pick the shortest ray
-		rayX := ray1X
-		rayY := ray1Y
-		dist1 := distance(px, py, ray1X, ray1Y)
-		dist2 := distance(px, py, ray2X, ray2Y)
-		dist := dist1
+		rayX := vRayX
+		rayY := vRayY
+		vDist := distance(px, py, vRayX, vRayY)
+		hDist := distance(px, py, hRayX, hRayY)
+		dist := vDist
 		// color := rl.SkyBlue
 		shade := 1.0
+		texture := vTexture
 
-		if dist2 < dist1 {
-			rayX = ray2X
-			rayY = ray2Y
-			dist = dist2
+		if hDist < vDist {
+			rayX = hRayX
+			rayY = hRayY
+			dist = hDist
 			// color = rl.Blue
 			shade = 0.5
+			texture = hTexture
 		}
 
 		rl.DrawLine(
@@ -478,7 +484,16 @@ func castRays() {
 		}
 
 		wallOffset := int32((maxWallHeight / 2) - (wallHeight / 2))
-		var ty float64 = tyOff * tyStep
+		var ty float64 = tyOff*tyStep + (float64(texture) * 32)
+		var tx int
+
+		if shade == 1 {
+			tx = int(rayX/2.0) % 32
+		} else {
+			tx = int(rayY/2.0) % 32
+		}
+
+		// tx = int(math.Max(float64(tx), 0))
 
 		// to just draw walls as solid colors, use this
 		// rl.DrawRectangle(
@@ -492,7 +507,7 @@ func castRays() {
 		// textured walls
 
 		for y := 0; y < int(wallHeight); y++ {
-			c := uint8(float64(textures[int(ty)*32]) * shade * 255)
+			c := uint8(float64(textures[int(ty)*32+tx]) * shade * 255)
 
 			rl.DrawRectangle(
 				int32(i*8+530),
